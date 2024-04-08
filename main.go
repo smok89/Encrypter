@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -32,6 +33,79 @@ func decrypt_cesar(messageToEncrypt string, offset int) string {
 	return encrypt_cesar(messageToEncrypt, -offset)
 }
 
+func stringToBits(str string) []int {
+	var bits []int
+	for _, c := range []byte(str) {
+		for i := 7; i >= 0; i-- {
+			bit := (c >> i) & 1
+			bits = append(bits, int(bit))
+		}
+	}
+	return bits
+}
+
+func binaryToDecimal(binary []int) int {
+	decimal := 0
+	size := len(binary)
+	for i, bit := range binary {
+		decimal += bit * int(math.Pow(2, float64(size-i-1)))
+	}
+	return decimal
+}
+
+func decimalToBinary(n int) []int {
+	bits := make([]int, 6)
+	for i := 0; i < 6; i++ {
+		bits[5-i] = n & 1
+		n = n >> 1
+	}
+	return bits
+}
+
+func encrypt_base64(messageToEncrypt string) string {
+	encryptedMessage := ""
+	base64Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	bits := stringToBits(messageToEncrypt)
+	size := len(bits)
+	if size%24 != 0 {
+		numberZerosToAdd := 24 - size%24
+		bits = append(bits, make([]int, numberZerosToAdd)...)
+	}
+	numberOf6BitsBlocks := len(bits) / 6
+	for i := 0; i < numberOf6BitsBlocks; i++ {
+		if i <= size/6 {
+			block := bits[i*6 : (i+1)*6]
+			valueOfBlock := binaryToDecimal(block)
+			encryptedMessage += string(base64Table[valueOfBlock])
+		} else {
+			encryptedMessage += "="
+		}
+	}
+	return encryptedMessage
+}
+
+func decrypt_base64(messageToDecrypt string) string {
+	decryptedMessage := ""
+	base64Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	var bits []int
+	for _, s := range messageToDecrypt {
+		if s != rune('=') {
+			index := strings.Index(base64Table, string(s))
+			IndexBits := decimalToBinary(index)
+			bits = append(bits, IndexBits...)
+		}
+	}
+	size := len(bits)
+	numberOfBytes := size / 8
+
+	for i := 0; i < numberOfBytes; i++ {
+		byteBlock := bits[i*8 : (i+1)*8]
+		decimalValue := binaryToDecimal(byteBlock)
+		decryptedMessage += string(decimalValue)
+	}
+	return decryptedMessage
+}
+
 func encrypt(messageToEncrypt string, algo string, r *bufio.Reader) string {
 	switch algo {
 	case "cesar":
@@ -39,7 +113,9 @@ func encrypt(messageToEncrypt string, algo string, r *bufio.Reader) string {
 		offset, _ := strconv.Atoi(offset_str)
 		encryptedMessage := encrypt_cesar(messageToEncrypt, offset)
 		return encryptedMessage
-
+	case "base64":
+		encryptedMessage := encrypt_base64(messageToEncrypt)
+		return encryptedMessage
 	default:
 		return messageToEncrypt
 	}
@@ -52,6 +128,9 @@ func decrypt(messageToDecrypt string, algo string, r *bufio.Reader) string {
 		offset, _ := strconv.Atoi(offset_str)
 		decryptedMessage := decrypt_cesar(messageToDecrypt, offset)
 		return decryptedMessage
+	case "base64":
+		decryptedMessage := decrypt_base64(messageToDecrypt)
+		return decryptedMessage
 	default:
 		return messageToDecrypt
 	}
@@ -63,19 +142,18 @@ func promptOptions() {
 	switch opt {
 	case "e":
 		message, _ := getInput("What is the message to be encrypted ? - ", reader)
-		algo, _ := getInput("Which algorithm do you want to use ? (cesar, b32, b64) - ", reader)
+		algo, _ := getInput("Which algorithm do you want to use ? (cesar, base32, base64) - ", reader)
 		encryptedMessage := encrypt(message, algo, reader)
 		fmt.Printf("The encrypted message is: %v\n", encryptedMessage)
 
 	case "d":
 		message, _ := getInput("What is the message to be decrypted ? - ", reader)
-		algo, _ := getInput("Which algorithm was used ? (cesar, b32, b64) - ", reader)
+		algo, _ := getInput("Which algorithm was used ? (cesar, base32, base64) - ", reader)
 		decryptedMessage := decrypt(message, algo, reader)
 		fmt.Printf("The decrypted message is: %v\n", decryptedMessage)
 	}
 }
 
 func main() {
-	fmt.Println()
 	promptOptions()
 }
