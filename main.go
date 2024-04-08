@@ -53,13 +53,57 @@ func binaryToDecimal(binary []int) int {
 	return decimal
 }
 
-func decimalToBinary(n int) []int {
-	bits := make([]int, 6)
-	for i := 0; i < 6; i++ {
-		bits[5-i] = n & 1
+func decimalToBinary(n int, blockSize int) []int {
+	bits := make([]int, blockSize)
+	for i := 0; i < blockSize; i++ {
+		bits[blockSize-1-i] = n & 1
 		n = n >> 1
 	}
 	return bits
+}
+
+func encrypt_base32(messageToEncrypt string) string {
+	encryptedMessage := ""
+	base32Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+	bits := stringToBits(messageToEncrypt)
+	size := len(bits)
+	if size%40 != 0 {
+		numberZerosToAdd := 40 - size%40
+		bits = append(bits, make([]int, numberZerosToAdd)...)
+	}
+	numberOf6BitsBlocks := len(bits) / 5
+	for i := 0; i < numberOf6BitsBlocks; i++ {
+		if i <= size/5 {
+			block := bits[i*5 : (i+1)*5]
+			valueOfBlock := binaryToDecimal(block)
+			encryptedMessage += string(base32Table[valueOfBlock])
+		} else {
+			encryptedMessage += "="
+		}
+	}
+	return encryptedMessage
+}
+
+func decrypt_base32(messageToDecrypt string) string {
+	decryptedMessage := ""
+	base32Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+	var bits []int
+	for _, s := range messageToDecrypt {
+		if s != rune('=') {
+			index := strings.Index(base32Table, string(s))
+			IndexBits := decimalToBinary(index, 5)
+			bits = append(bits, IndexBits...)
+		}
+	}
+	size := len(bits)
+	numberOfBytes := size / 8
+
+	for i := 0; i < numberOfBytes; i++ {
+		byteBlock := bits[i*8 : (i+1)*8]
+		decimalValue := binaryToDecimal(byteBlock)
+		decryptedMessage += string(rune(decimalValue))
+	}
+	return decryptedMessage
 }
 
 func encrypt_base64(messageToEncrypt string) string {
@@ -91,7 +135,7 @@ func decrypt_base64(messageToDecrypt string) string {
 	for _, s := range messageToDecrypt {
 		if s != rune('=') {
 			index := strings.Index(base64Table, string(s))
-			IndexBits := decimalToBinary(index)
+			IndexBits := decimalToBinary(index, 6)
 			bits = append(bits, IndexBits...)
 		}
 	}
@@ -101,7 +145,7 @@ func decrypt_base64(messageToDecrypt string) string {
 	for i := 0; i < numberOfBytes; i++ {
 		byteBlock := bits[i*8 : (i+1)*8]
 		decimalValue := binaryToDecimal(byteBlock)
-		decryptedMessage += string(decimalValue)
+		decryptedMessage += string(rune(decimalValue))
 	}
 	return decryptedMessage
 }
@@ -112,6 +156,9 @@ func encrypt(messageToEncrypt string, algo string, r *bufio.Reader) string {
 		offset_str, _ := getInput("What is the offset to use ? - ", r)
 		offset, _ := strconv.Atoi(offset_str)
 		encryptedMessage := encrypt_cesar(messageToEncrypt, offset)
+		return encryptedMessage
+	case "base32":
+		encryptedMessage := encrypt_base32(messageToEncrypt)
 		return encryptedMessage
 	case "base64":
 		encryptedMessage := encrypt_base64(messageToEncrypt)
@@ -127,6 +174,9 @@ func decrypt(messageToDecrypt string, algo string, r *bufio.Reader) string {
 		offset_str, _ := getInput("What is the offset used to cipher ? - ", r)
 		offset, _ := strconv.Atoi(offset_str)
 		decryptedMessage := decrypt_cesar(messageToDecrypt, offset)
+		return decryptedMessage
+	case "base32":
+		decryptedMessage := decrypt_base32(messageToDecrypt)
 		return decryptedMessage
 	case "base64":
 		decryptedMessage := decrypt_base64(messageToDecrypt)
