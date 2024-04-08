@@ -2,11 +2,12 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"strconv"
 	"strings"
 )
 
-func encrypt_cesar(messageToEncrypt string, offset int) string {
+func encryptCesar(messageToEncrypt string, offset int) string {
 	encryptedMessage := ""
 	for _, r := range messageToEncrypt {
 		if 'a' <= r && r <= 'z' {
@@ -20,11 +21,11 @@ func encrypt_cesar(messageToEncrypt string, offset int) string {
 	return encryptedMessage
 }
 
-func decrypt_cesar(messageToEncrypt string, offset int) string {
-	return encrypt_cesar(messageToEncrypt, -offset)
+func decryptCesar(messageToEncrypt string, offset int) string {
+	return encryptCesar(messageToEncrypt, -offset)
 }
 
-func encrypt_base(messageToEncrypt string, table string, blockSize int, modulo int) string {
+func encryptBase(messageToEncrypt string, table string, blockSize int, modulo int) string {
 	encryptedMessage := ""
 	bits := stringToBits(messageToEncrypt)
 	size := len(bits)
@@ -45,21 +46,21 @@ func encrypt_base(messageToEncrypt string, table string, blockSize int, modulo i
 	return encryptedMessage
 }
 
-func encrypt_base32(messageToEncrypt string) string {
+func encryptBase32(messageToEncrypt string) string {
 	base32Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 	blockSize := 5
 	modulo := 40
-	return encrypt_base(messageToEncrypt, base32Table, blockSize, modulo)
+	return encryptBase(messageToEncrypt, base32Table, blockSize, modulo)
 }
 
-func encrypt_base64(messageToEncrypt string) string {
+func encryptBase64(messageToEncrypt string) string {
 	base64Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 	blockSize := 6
 	modulo := 24
-	return encrypt_base(messageToEncrypt, base64Table, blockSize, modulo)
+	return encryptBase(messageToEncrypt, base64Table, blockSize, modulo)
 }
 
-func decrypt_base(messageToDecrypt string, table string, blockSize int) string {
+func decryptBase(messageToDecrypt string, table string, blockSize int) string {
 	decryptedMessage := ""
 	var bits []int
 	for _, s := range messageToDecrypt {
@@ -79,16 +80,63 @@ func decrypt_base(messageToDecrypt string, table string, blockSize int) string {
 	return decryptedMessage
 }
 
-func decrypt_base64(messageToDecrypt string) string {
+func decryptBase64(messageToDecrypt string) string {
 	base64Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 	blockSize := 6
-	return decrypt_base(messageToDecrypt, base64Table, blockSize)
+	return decryptBase(messageToDecrypt, base64Table, blockSize)
 }
 
-func decrypt_base32(messageToDecrypt string) string {
+func decryptBase32(messageToDecrypt string) string {
 	base32Table := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 	blockSize := 5
-	return decrypt_base(messageToDecrypt, base32Table, blockSize)
+	return decryptBase(messageToDecrypt, base32Table, blockSize)
+}
+
+func cryptRot13(message string) string {
+	return encryptCesar(message, 13)
+}
+
+func generateVigenereKey(messageSize int, key string) string {
+	keySize := len(key)
+	var fullKey string
+	for i := 0; ; i++ {
+		if i == keySize {
+			i = 0
+		}
+		if len(fullKey) == messageSize {
+			break
+		}
+		fullKey += string(key[i])
+	}
+	return fullKey
+}
+
+func encryptVigenere(messageToEncrypt string, key string) string {
+	encryptionKey := generateVigenereKey(len(messageToEncrypt), key)
+	var encryptedMessage string
+	for i, r := range messageToEncrypt {
+		if 'A' <= r && r <= 'Z' {
+			encryptedMessage += string((r-2*'A'+rune(encryptionKey[i]))%26 + 'A') // substract 2*'A' because here offset = key[i]-'A' and not just key[i]
+		} else {
+			encryptedMessage += string(r)
+
+		}
+	}
+	return encryptedMessage
+}
+
+func decryptVigenere(messageToEncrypt string, key string) string {
+	encryptionKey := generateVigenereKey(len(messageToEncrypt), key)
+	var encryptedMessage string
+	for i, r := range messageToEncrypt {
+		if 'A' <= r && r <= 'Z' {
+			encryptedMessage += string((26+r-rune(encryptionKey[i]))%26 + 'A') // the sign of (key[i]-'A') was changed
+		} else {
+			encryptedMessage += string(r)
+
+		}
+	}
+	return encryptedMessage
 }
 
 func encrypt(messageToEncrypt string, algo string, r *bufio.Reader) string {
@@ -96,16 +144,29 @@ func encrypt(messageToEncrypt string, algo string, r *bufio.Reader) string {
 	case "cesar":
 		offset_str, _ := getInput("What is the offset to use ? - ", r)
 		offset, _ := strconv.Atoi(offset_str)
-		encryptedMessage := encrypt_cesar(messageToEncrypt, offset)
+		encryptedMessage := encryptCesar(messageToEncrypt, offset)
 		return encryptedMessage
 	case "base32":
-		encryptedMessage := encrypt_base32(messageToEncrypt)
+		encryptedMessage := encryptBase32(messageToEncrypt)
 		return encryptedMessage
 	case "base64":
-		encryptedMessage := encrypt_base64(messageToEncrypt)
+		encryptedMessage := encryptBase64(messageToEncrypt)
+		return encryptedMessage
+	case "rot13":
+		encryptedMessage := cryptRot13(messageToEncrypt)
+		return encryptedMessage
+	case "vigenere":
+		key, _ := getInput("What is the key to use ? - ", r)
+		messageUpper := strings.ToUpper(messageToEncrypt)
+		cleanMessage := strings.ReplaceAll(messageUpper, " ", "")
+		fmt.Println("The message was reformated as:", cleanMessage)
+		keyUpper := strings.ToUpper(key)
+		cleanKey := strings.ReplaceAll(keyUpper, " ", "")
+		fmt.Println("The key was reformated as:", cleanKey)
+		encryptedMessage := encryptVigenere(cleanMessage, cleanKey)
 		return encryptedMessage
 	default:
-		return messageToEncrypt
+		return "The algorithm provided was not recognized"
 	}
 }
 
@@ -114,15 +175,28 @@ func decrypt(messageToDecrypt string, algo string, r *bufio.Reader) string {
 	case "cesar":
 		offset_str, _ := getInput("What is the offset used to cipher ? - ", r)
 		offset, _ := strconv.Atoi(offset_str)
-		decryptedMessage := decrypt_cesar(messageToDecrypt, offset)
+		decryptedMessage := decryptCesar(messageToDecrypt, offset)
 		return decryptedMessage
 	case "base32":
-		decryptedMessage := decrypt_base32(messageToDecrypt)
+		decryptedMessage := decryptBase32(messageToDecrypt)
 		return decryptedMessage
 	case "base64":
-		decryptedMessage := decrypt_base64(messageToDecrypt)
+		decryptedMessage := decryptBase64(messageToDecrypt)
+		return decryptedMessage
+	case "rot13":
+		decryptedMessage := cryptRot13(messageToDecrypt)
+		return decryptedMessage
+	case "vigenere":
+		key, _ := getInput("What key was used ? - ", r)
+		messageUpper := strings.ToUpper(messageToDecrypt)
+		cleanMessage := strings.ReplaceAll(messageUpper, " ", "")
+		fmt.Println("The message was reformated as:", cleanMessage)
+		keyUpper := strings.ToUpper(key)
+		cleanKey := strings.ReplaceAll(keyUpper, " ", "")
+		fmt.Println("The key was reformated as:", cleanKey)
+		decryptedMessage := decryptVigenere(cleanMessage, cleanKey)
 		return decryptedMessage
 	default:
-		return messageToDecrypt
+		return "The algorithm provided was not recognized"
 	}
 }
