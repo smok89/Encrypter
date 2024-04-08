@@ -142,7 +142,7 @@ func decryptVigenere(messageToEncrypt string, key string) string {
 func encrypt(messageToEncrypt string, algo string, r *bufio.Reader) string {
 	switch algo {
 	case "cesar":
-		offset_str, _ := getInput("What is the offset to use ? - ", r)
+		offset_str, _ := getInput("What is the offset to use ?   ", r)
 		offset, _ := strconv.Atoi(offset_str)
 		encryptedMessage := encryptCesar(messageToEncrypt, offset)
 		return encryptedMessage
@@ -156,24 +156,24 @@ func encrypt(messageToEncrypt string, algo string, r *bufio.Reader) string {
 		encryptedMessage := cryptRot13(messageToEncrypt)
 		return encryptedMessage
 	case "vigenere":
-		key, _ := getInput("What is the key to use ? - ", r)
+		key, _ := getInput("What is the key to use ?   ", r)
 		messageUpper := strings.ToUpper(messageToEncrypt)
 		cleanMessage := strings.ReplaceAll(messageUpper, " ", "")
-		fmt.Println("The message was reformated as:", cleanMessage)
+		fmt.Println("The message was reformated as:  ", cleanMessage)
 		keyUpper := strings.ToUpper(key)
 		cleanKey := strings.ReplaceAll(keyUpper, " ", "")
-		fmt.Println("The key was reformated as:", cleanKey)
+		fmt.Println("The key was reformated as:  ", cleanKey)
 		encryptedMessage := encryptVigenere(cleanMessage, cleanKey)
 		return encryptedMessage
 	default:
-		return "The algorithm provided was not recognized"
+		return "The algorithm provided was not recognized..."
 	}
 }
 
 func decrypt(messageToDecrypt string, algo string, r *bufio.Reader) string {
 	switch algo {
 	case "cesar":
-		offset_str, _ := getInput("What is the offset used to cipher ? - ", r)
+		offset_str, _ := getInput("What is the offset used to cipher ?   ", r)
 		offset, _ := strconv.Atoi(offset_str)
 		decryptedMessage := decryptCesar(messageToDecrypt, offset)
 		return decryptedMessage
@@ -187,16 +187,16 @@ func decrypt(messageToDecrypt string, algo string, r *bufio.Reader) string {
 		decryptedMessage := cryptRot13(messageToDecrypt)
 		return decryptedMessage
 	case "vigenere":
-		key, _ := getInput("What key was used ? - ", r)
+		key, _ := getInput("What key was used ?   ", r)
 		messageUpper := strings.ToUpper(messageToDecrypt)
 		cleanMessage := strings.ReplaceAll(messageUpper, " ", "")
-		fmt.Println("The message was reformated as:", cleanMessage)
+		fmt.Println("The message was reformated as:  ", cleanMessage)
 		keyUpper := strings.ToUpper(key)
 		cleanKey := strings.ReplaceAll(keyUpper, " ", "")
-		fmt.Println("The key was reformated as:", cleanKey)
+		fmt.Println("The key was reformated as:  ", cleanKey)
 		decryptedMessage := decryptVigenere(cleanMessage, cleanKey)
 		return decryptedMessage
 	default:
-		return "The algorithm provided was not recognized"
+		return "The algorithm provided was not recognized..."
 	}
 }
